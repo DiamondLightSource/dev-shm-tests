@@ -9,10 +9,10 @@ import numpy as np
 import os
 from time import time_ns
 
-def new_run(h5_save_path, h5_load_file_path, run_number):
+def new_run(rank, h5_save_path, h5_load_file_path, run_number):
 
     # New directory to store run.
-    h5_save_path_this_run = os.path.join(h5_save_path, f"run_num_{run_number}")
+    h5_save_path_this_run = os.path.join(h5_save_path, f"run_num_{run_number}_rank_{rank}")
     print(f"starting new run {run_number}")
     os.makedirs(h5_save_path_this_run)
 
@@ -33,24 +33,18 @@ def new_run(h5_save_path, h5_load_file_path, run_number):
         end_time = time_ns()
     return end_time - start_time
 
-def save_times(times_array, times_file_path):
-    np.save(times_file_path, times_array)
-
-def chunk_output(h5_save_path, h5_load_paths, times_path, save_after_iterations=5, max_iterations=50000):
 
 
-    times_array = np.zeros(max_iterations)
+
+def chunk_output(comm, rank, h5_save_path, h5_load_paths, max_iterations=50000):
 
     for iteration in range(max_iterations):
-        time_taken = new_run(h5_save_path, h5_load_paths[iteration % len(h5_load_paths)], iteration)
+        # Add the rank so cores aren't reading from the same h5 file.
+        time_taken = new_run(rank, h5_save_path, h5_load_paths[(iteration + rank) % len(h5_load_paths)], iteration)
 
 
-        times_array[iteration] = time_taken
-
-        if (iteration + 1) % save_after_iterations == 0:
-            print(f"time array: another {save_after_iterations} runs complete, saving results to {times_path}")
-            save_times(times_array, times_path)
-
+        # Pass it to the core saving to the numpy array
+        comm.isend(time_taken, dest=1, tag=3)
 
 def get_h5_file_paths(path):
     path_filenames = os.listdir(path)
