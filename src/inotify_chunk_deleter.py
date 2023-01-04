@@ -5,21 +5,23 @@ waits for a new run to be created and does the same.
 import inotify.adapters
 import os
 from constants import FACTORS_OF_CHUNKS_TO_DELETE
-import shutil
-
 
 def delete_older_runs_if_neccessary(h5_output_directory):
     sizes = os.statvfs(h5_output_directory)
     dir_contents = os.listdir(h5_output_directory)
-    while (sizes.f_bfree  < sizes.f_blocks*0.2):
+    if (sizes.f_bfree  < sizes.f_blocks*0.2):
+        print(f"inotify: deleting runs: ", end="")
         for run_to_delete in dir_contents[-4:]:
             if run_to_delete[-3:]  != "npy":
-                print(f"inotify: deleting run {run_to_delete}")
-                shutil.rmtree(os.path.join(h5_output_directory, run_to_delete))
+                print(str(run_to_delete), end = " ")
+                os.system(f"rm -rf {os.path.join(h5_output_directory, run_to_delete)}")
+        print("")
+
+                # shutil rm was far too slow, must be a weird thing implementation....
+                #shutil.rmtree(os.path.join(h5_output_directory, run_to_delete))
 
 
 def delete_chunks(run_directory, factors_of_chunks_to_delete=FACTORS_OF_CHUNKS_TO_DELETE):
-    print(run_directory)
     directory_files = os.listdir(run_directory)
     for i in range(len(directory_files)):
         for factor in factors_of_chunks_to_delete:
@@ -42,7 +44,7 @@ def delete_old_chunks_on_new_dir_creation(path):
 
         if "IN_CREATE" in type_names:
             if  filename[-4:] != ".dat":
-                print(f"inotify: new run run created {filename}")
+                print(f"inotify: new run created {filename}")
                 if run_dir_name is not None:
                     print(f"inotify: deleting chunks from last run {run_dir_name}")
                     delete_chunks(os.path.join(path, run_dir_name))

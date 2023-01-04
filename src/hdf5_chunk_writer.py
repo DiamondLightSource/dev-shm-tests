@@ -19,27 +19,33 @@ def new_run(h5_save_path, h5_load_file_path, run_number):
 
     with h5py.File(h5_load_file_path) as f:
         data = f["data"]
+        chunks = []
+
+        # Read chunks into memory.
         for chunk_num in range(data.shape[0]):
-            chunk = data.id.read_direct_chunk((chunk_num, 0, 0))[1]
-            with open(os.path.join(h5_save_path_this_run,f"chunk_{chunk_num}.dat"), "wb") as f:
-                f.write(chunk)
+            chunks.append(data.id.read_direct_chunk((chunk_num, 0, 0))[1])
+        
+        # We only want to time write, not read.
+        start_time = time_ns()
+        for i  in range(len(chunks)):
+            with open(os.path.join(h5_save_path_this_run,f"chunk_{i}.dat"), "wb") as f:
+                f.write(chunks[i])
+        end_time = time_ns()
+    return end_time - start_time
 
 def save_times(times_array, times_file_path):
     np.save(times_file_path, times_array)
 
-def chunk_output(comm, h5_save_path, h5_load_paths, times_path, save_after_iterations=5, max_iterations=50000):
+def chunk_output(h5_save_path, h5_load_paths, times_path, save_after_iterations=5, max_iterations=50000):
 
 
     times_array = np.zeros(max_iterations)
 
     for iteration in range(max_iterations):
-        run_start_time = time_ns()
-        new_run(h5_save_path, h5_load_paths[iteration % len(h5_load_paths)], iteration)
-        run_end_time = time_ns()
+        time_taken = new_run(h5_save_path, h5_load_paths[iteration % len(h5_load_paths)], iteration)
 
 
-        times_array[iteration] = run_end_time - run_start_time
-        comm
+        times_array[iteration] = time_taken
 
         if (iteration + 1) % save_after_iterations == 0:
             print(f"time array: another {save_after_iterations} runs complete, saving results to {times_path}")

@@ -19,7 +19,7 @@ def run_with_mpi(comm, rank, current_time):
         delete_old_chunks_on_new_dir_creation(H5_CHUNK_OUT_DIRECTORY)
     elif rank == 1:
         print("core outputting chunks started")
-        chunk_output(comm, H5_CHUNK_OUT_DIRECTORY, H5_FILE_LIST, TIME_ARRAY_OUT_DIRECTORY)
+        chunk_output(H5_CHUNK_OUT_DIRECTORY, H5_FILE_LIST, TIME_ARRAY_OUT_DIRECTORY)
 
 
 def get_start_time(comm, rank, cores):
