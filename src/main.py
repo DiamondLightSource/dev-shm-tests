@@ -1,25 +1,30 @@
-
-import threading 
 from constants import TIME_ARRAY_OUT_DIRECTORY, H5_FILE_DIRECTORY, H5_CHUNK_OUT_DIRECTORY
 from hdf5_chunk_writer import chunk_output, get_h5_file_paths
 from inotify_chunk_deleter import delete_old_chunks_on_new_dir_creation
 from mpi4py import MPI
 from time import time_ns
-H5_FILE_LIST = get_h5_file_paths(H5_FILE_DIRECTORY)
 import os
+
+H5_FILE_LIST = get_h5_file_paths(H5_FILE_DIRECTORY)
 
 def run_with_mpi(comm, rank, current_time):
     global H5_CHUNK_OUT_DIRECTORY, TIME_ARRAY_OUT_DIRECTORY
+
     
-    H5_CHUNK_OUT_DIRECTORY = os.path.join(H5_CHUNK_OUT_DIRECTORY, f"run_at_{current_time}")
-    TIME_ARRAY_OUT_DIRECTORY = os.path.join(TIME_ARRAY_OUT_DIRECTORY, f"run_at_{current_time}_time_results.npy")
+    h5_chunk_out_directory = os.path.join(H5_CHUNK_OUT_DIRECTORY, f"run_at_{current_time}")
+    time_array_out_directory = os.path.join(TIME_ARRAY_OUT_DIRECTORY, f"run_at_{current_time}_time_results.npy")
 
     if rank == 0:
+        try:
+            os.mkdir(TIME_ARRAY_OUT_DIRECTORY)
+        except FileExistsError:
+            pass 
+
         print("core running inotify started")
-        delete_old_chunks_on_new_dir_creation(H5_CHUNK_OUT_DIRECTORY)
+        delete_old_chunks_on_new_dir_creation(h5_chunk_out_directory)
     elif rank == 1:
         print("core outputting chunks started")
-        chunk_output(H5_CHUNK_OUT_DIRECTORY, H5_FILE_LIST, TIME_ARRAY_OUT_DIRECTORY)
+        chunk_output(h5_chunk_out_directory, H5_FILE_LIST, time_array_out_directory)
 
 
 def get_start_time(comm, rank, cores):
