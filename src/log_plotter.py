@@ -13,7 +13,6 @@ if __name__ == "__main__":
         if file[-4:] == ".npy":
            times = np.load(os.path.join(TIME_ARRAY_OUT_DIRECTORY, file)) 
            times = np.delete(times, np.where(times == 0))
-           print(times)
            plt.plot(times)
     
     plt.show()

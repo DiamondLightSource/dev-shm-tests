@@ -8,26 +8,19 @@ from time import time_ns
 H5_FILE_LIST = get_h5_file_paths(H5_FILE_DIRECTORY)
 import os
 
-def run_with_threading(current_time):
-    global H5_CHUNK_OUT_DIRECTORY
-
-    H5_CHUNK_OUT_DIRECTORY = os.path.join(H5_CHUNK_OUT_DIRECTORY, f"run_at_{current_time}")
-    event = threading.Event()
-    thread_1 = threading.Thread(target=delete_old_chunks_on_new_dir_creation, args=(H5_CHUNK_OUT_DIRECTORY,))
-    thread_1.start()
-    thread_2 = threading.Thread(target=chunk_output, args=(H5_CHUNK_OUT_DIRECTORY, H5_FILE_LIST, TIME_ARRAY_OUT_DIRECTORY, current_time))
-    thread_2.start()
-
-def run_with_mpi(rank, current_time):
-    global H5_CHUNK_OUT_DIRECTORY
+def run_with_mpi(comm, rank, current_time):
+    global H5_CHUNK_OUT_DIRECTORY, TIME_ARRAY_OUT_DIRECTORY
     
     H5_CHUNK_OUT_DIRECTORY = os.path.join(H5_CHUNK_OUT_DIRECTORY, f"run_at_{current_time}")
+    TIME_ARRAY_OUT_DIRECTORY = os.path.join(TIME_ARRAY_OUT_DIRECTORY, f"run_at_{current_time}_time_results.npy")
+
     if rank == 0:
         print("core running inotify started")
         delete_old_chunks_on_new_dir_creation(H5_CHUNK_OUT_DIRECTORY)
     elif rank == 1:
         print("core outputting chunks started")
-        chunk_output(H5_CHUNK_OUT_DIRECTORY, H5_FILE_LIST, TIME_ARRAY_OUT_DIRECTORY, current_time)
+        chunk_output(comm, H5_CHUNK_OUT_DIRECTORY, H5_FILE_LIST, TIME_ARRAY_OUT_DIRECTORY)
+
 
 def get_start_time(comm, rank, cores):
     """
@@ -50,15 +43,16 @@ def main():
     rank = comm.Get_rank()
     cores = comm.Get_size()
 
+    if cores < 2:
+        print("MPI can't find two cores, run with mpiexec -n 2")
+        return
+
+    print("running with mpi cores")
+
     # Get the time core 0 started
     current_time = get_start_time(comm, rank, cores)
 
-    if cores == 1 and rank == 0:
-        print("MPI can't find two cores, running with threading")
-        run_with_threading(current_time)
-    else:
-        print("running on multiple cores")
-        run_with_mpi(rank, current_time)
+    run_with_mpi(comm, rank, current_time)
 
 if __name__ == "__main__":
     main()
