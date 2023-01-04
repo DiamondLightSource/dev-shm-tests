@@ -10,9 +10,12 @@ import shutil
 
 def delete_older_runs_if_neccessary(h5_output_directory):
     stat = shutil.disk_usage(h5_output_directory)
+    dir_contents = os.listdir(h5_output_directory)
     while (stat.free  < stat.used/8):
-        for run_to_delete in os.listdir(h5_output_directory)[:2]:
-            os.remove(os.path.join(h5_output_directory, run_to_delete))
+        for run_to_delete in dir_contents[:4]:
+            if run_to_delete[-3:]  != "npy":
+                print(f"inotify: deleting run {run_to_delete}")
+                os.remove(os.path.join(h5_output_directory, run_to_delete))
 
 
 
