@@ -39,7 +39,8 @@ def save_times(times_array, times_file_path):
 def chunk_output(h5_save_path, h5_load_paths, times_path, save_after_iterations=5, max_iterations=50000):
 
 
-    times_array = np.zeros(max_iterations)
+    times_array = np.empty(max_iterations)
+    times_array.fill(-1)
 
     for iteration in range(max_iterations):
         time_taken = new_run(h5_save_path, h5_load_paths[iteration % len(h5_load_paths)], iteration)

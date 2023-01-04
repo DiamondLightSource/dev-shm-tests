@@ -13,7 +13,7 @@ if __name__ == "__main__":
     for file in files:
         if file[-4:] == ".npy":
            times = np.load(os.path.join(TIME_ARRAY_OUT_DIRECTORY, file)) 
-           times = np.delete(times, np.where(times == 0))
+           times = np.delete(times, np.where(times == -1))
            times *= 1e-9
            plt.plot(times)
     
