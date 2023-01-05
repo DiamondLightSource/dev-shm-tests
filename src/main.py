@@ -1,30 +1,35 @@
-from constants import TIME_ARRAY_OUT_DIRECTORY, H5_FILE_DIRECTORY, H5_CHUNK_OUT_DIRECTORY
-from hdf5_chunk_writer import chunk_output, get_h5_file_paths
+from constants import TIME_ARRAY_OUT_DIRECTORY, H5_CHUNK_OUT_DIRECTORY, ZMQ_PORT
+from hdf5_chunk_writer import retrieve_chunks_and_save_to_shm
 from inotify_chunk_deleter import delete_old_chunks_on_new_dir_creation
 from mpi4py import MPI
 from time import time_ns
+from zmq_socket import start_zmp_chunk_server
 import os
 
-H5_FILE_LIST = get_h5_file_paths(H5_FILE_DIRECTORY)
 
-def run_with_mpi(comm, rank, current_time):
-    global H5_CHUNK_OUT_DIRECTORY, TIME_ARRAY_OUT_DIRECTORY
-
-    
+def run_with_mpi(rank, current_time):
     h5_chunk_out_directory = os.path.join(H5_CHUNK_OUT_DIRECTORY, f"run_at_{current_time}")
     time_array_out_directory = os.path.join(TIME_ARRAY_OUT_DIRECTORY, f"run_at_{current_time}_time_results.npy")
 
     if rank == 0:
+        print(f"core 0 initialising zmq server")
+        start_zmp_chunk_server(port=ZMQ_PORT)
+
+    elif rank == 1:
+        print(f"core 1 running inotify to delete chunks")
         try:
             os.mkdir(TIME_ARRAY_OUT_DIRECTORY)
         except FileExistsError:
             pass 
 
-        print("core running inotify started")
         delete_old_chunks_on_new_dir_creation(h5_chunk_out_directory)
-    elif rank == 1:
-        print("core outputting chunks started")
-        chunk_output(h5_chunk_out_directory, H5_FILE_LIST, time_array_out_directory)
+
+    elif rank == 2:
+        print("core 2 outputting chunks to shm")
+        retrieve_chunks_and_save_to_shm(ZMQ_PORT, h5_chunk_out_directory, time_array_out_directory)
+    
+    else:
+        print(f"core {rank} has nothing to do")
 
 
 def get_start_time(comm, rank, cores):
@@ -35,9 +40,10 @@ def get_start_time(comm, rank, cores):
     if cores == 1:
         return current_time
     if rank == 0:
-        comm.isend(current_time, dest=1, tag=1)
+        for core in range(1, cores):
+            comm.isend(current_time, dest=core, tag=1)
         return current_time
-    if rank == 1:
+    else:
         return comm.recv(source=0, tag=1)
 
 
@@ -48,16 +54,17 @@ def main():
     rank = comm.Get_rank()
     cores = comm.Get_size()
 
-    if cores < 2:
-        print("MPI can't find two cores, run with mpiexec -n 2")
+    if cores < 3:
+        print(f"test is using {cores} cores, requires at least 3, run with mpiexec -n 3")
         return
 
-    print("running with mpi cores")
+    if rank == 0:
+        print(f"running with {cores} cores")
 
     # Get the time core 0 started
     current_time = get_start_time(comm, rank, cores)
 
-    run_with_mpi(comm, rank, current_time)
+    run_with_mpi(rank, current_time)
 
 if __name__ == "__main__":
     main()

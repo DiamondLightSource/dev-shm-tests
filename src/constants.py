@@ -11,3 +11,6 @@ H5_CHUNK_OUT_DIRECTORY = "/dev/shm"
 
 # If a chunk index contains these as a factor then the inotify thread/core will delete it.
 FACTORS_OF_CHUNKS_TO_DELETE = [3,5]
+
+# 0mq server socket port
+ZMQ_PORT = 5556
