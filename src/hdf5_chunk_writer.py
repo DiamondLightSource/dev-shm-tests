@@ -8,7 +8,7 @@ import pickle
 import numpy as np
 import os
 from time import time_ns
-from constants import ZMQ_PORT
+from constants import ZMQ_PORT, SAVE_RESULTS_AFTER_ITERATIONS, MAX_ITERATIONS
 import zmq
 
 def new_run(socket, h5_save_path, run_number):
@@ -19,8 +19,13 @@ def new_run(socket, h5_save_path, run_number):
     os.makedirs(h5_save_path_this_run)
 
     print(f"hdf5_chunk_writer: recieving chunks from server")
+
+    # We want the server to wait for the client to request another run,
+    # and it will hand on recv.
     socket.send("".encode("ascii"))
-    chunks = pickle.loads(socket.recv())
+
+
+    chunks = socket.recv_multipart()
     print(f"hdf5_chunk_writer: recieved chunks from server")
 
     # We only want to time write, not read.
@@ -41,7 +46,7 @@ def get_zmq_client_socket(port=ZMQ_PORT):
     socket.connect(f"tcp://127.0.0.1:{port}")
     return socket
 
-def retrieve_chunks_and_save_to_shm(port, h5_save_path, times_path, save_after_iterations=5, max_iterations=100000):
+def retrieve_chunks_and_save_to_shm(port, h5_save_path, times_path, save_after_iterations=SAVE_RESULTS_AFTER_ITERATIONS, max_iterations=MAX_ITERATIONS):
     socket = get_zmq_client_socket(port=port)
 
     times_array = np.empty(max_iterations)

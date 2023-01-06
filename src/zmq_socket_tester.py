@@ -6,7 +6,7 @@ import time
 import logging
 
 PORT = 5556
-DATA_TO_SEND = pickle.dumps(np.random.rand(1000000))
+DATA_TO_SEND = np.random.rand(1000000)
 
 def run_server():
     socket = get_zmq_server_socket(PORT)

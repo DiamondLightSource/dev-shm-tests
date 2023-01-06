@@ -3,6 +3,10 @@
 # Path to save the numpy array for the times of runs.
 TIME_ARRAY_OUT_DIRECTORY = "out"
 
+SAVE_RESULTS_AFTER_ITERATIONS = 100
+
+MAX_ITERATIONS = 10000000
+
 # H5 file path. The code will take all .h5 files in this path and iterate through them.
 H5_FILE_DIRECTORY = "/dls/i04-1/data/2021/cm28181-3/gw/20210720/TestInsulin/Insulin_12/"
 

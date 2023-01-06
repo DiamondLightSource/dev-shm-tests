@@ -10,6 +10,7 @@ import zmq
 from constants import ZMQ_PORT
 import itertools
 import pickle
+import numpy as np
 
 def get_h5_file_paths(path=H5_FILE_DIRECTORY):
     path_filenames = os.listdir(path)
@@ -37,13 +38,10 @@ def load_h5_files_as_arrays_of_chunks(h5_file_paths, max_array_number=None, pick
             # Read chunks into memory.
             for chunk_num in range(data.shape[0]):
                 chunks.append(data.id.read_direct_chunk((chunk_num, 0, 0))[1])
-
-            if pickled:
-                chunks = pickle.dumps(chunks)
-
+            
             chunks_arrays.append(chunks)
 
-            if max_array_number is not None:
+            if max_array_number:
                 if len(chunks_arrays) >= max_array_number:
                     break
 
@@ -60,13 +58,13 @@ def get_zmq_server_socket(port=ZMQ_PORT):
 
 
 def start_zmp_chunk_server(port=ZMQ_PORT):
-    chunk_arrays = load_h5_files_as_arrays_of_chunks(get_h5_file_paths(), max_array_number=MAX_NUM_H5_FILES, pickled=True)
+    chunk_arrays = load_h5_files_as_arrays_of_chunks(get_h5_file_paths(), max_array_number=MAX_NUM_H5_FILES)
     socket = get_zmq_server_socket(port=port)
 
-    for chunk_array_pickled in itertools.cycle(chunk_arrays):
+    for chunk_array in itertools.cycle(chunk_arrays):
         socket.recv()
-        print("zmq_socket: sending chunk")
-        socket.send(chunk_array_pickled)
+        print("zmq_socket: sending chunks")
+        socket.send_multipart(chunk_array)
 
 if __name__ == "__main__":
     start_zmp_chunk_server()
