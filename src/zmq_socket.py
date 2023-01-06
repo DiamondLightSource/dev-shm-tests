@@ -3,7 +3,7 @@ Loads h5 files into memory and stores them as arrays of chunks.
 Launches a 0mq socket on loopback so that hdf5_chunk_writer can recieve chunks faster than writing to disk.
 """
 
-from constants import H5_FILE_DIRECTORY
+from constants import H5_FILE_DIRECTORY, MAX_NUM_H5_FILES
 import os
 import h5py
 import zmq
@@ -60,7 +60,7 @@ def get_zmq_server_socket(port=ZMQ_PORT):
 
 
 def start_zmp_chunk_server(port=ZMQ_PORT):
-    chunk_arrays = load_h5_files_as_arrays_of_chunks(get_h5_file_paths(), max_array_number=3, pickled=True)
+    chunk_arrays = load_h5_files_as_arrays_of_chunks(get_h5_file_paths(), max_array_number=MAX_NUM_H5_FILES, pickled=True)
     socket = get_zmq_server_socket(port=port)
 
     for chunk_array_pickled in itertools.cycle(chunk_arrays):

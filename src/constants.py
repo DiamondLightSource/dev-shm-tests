@@ -20,3 +20,6 @@ DELETE_WHEN_PROPORTION_SPACE_LEFT = 0.05
 
 # Number of runs to delete when capacity has been reached
 NUMBER_OF_RUNS_TO_DELETE = 2
+
+# The number of h5 files to cycle through on each run
+MAX_NUM_H5_FILES = 4
