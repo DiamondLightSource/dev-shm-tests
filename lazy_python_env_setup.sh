@@ -9,4 +9,4 @@ mkdir .venv
 python -m venv .venv
 .venv/bin/pip install --upgrade pip
 module load mpich
-.venv/bin/pip install h5py inotify mpi4py matplotlib
+.venv/bin/pip install h5py inotify mpi4py matplotlib pyzmq

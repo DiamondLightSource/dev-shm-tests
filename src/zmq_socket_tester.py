@@ -3,6 +3,7 @@ import zmq
 import pickle
 import numpy as np
 import time
+import logging
 
 PORT = 5556
 DATA_TO_SEND = pickle.dumps(np.random.rand(1000000))
@@ -19,7 +20,7 @@ def get_zmq_server_socket(port):
     context = zmq.Context.instance()
     socket = context.socket(zmq.REP)
     socket.bind(f"tcp://127.0.0.1:{port}")
-    print("zmq_socket: starting server")
+    logging.info("zmq_socket: starting server")
     return socket
 
 def run_client():
@@ -27,10 +28,10 @@ def run_client():
     for i in range(1000000):
         socket.send("".encode("ascii"))
         var = pickle.loads(socket.recv())
-        print(var)
+        logging.info(var)
 
 def get_zmq_client_socket(port):
-    print("hdf5_chunk_writer: connecting to zmq server")
+    logging.info("hdf5_chunk_writer: connecting to zmq server")
     context = zmq.Context.instance()
     socket = context.socket(zmq.REQ)
     socket.connect(f"tcp://127.0.0.1:{port}")
