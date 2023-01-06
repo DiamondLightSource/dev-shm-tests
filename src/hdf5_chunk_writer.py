@@ -19,6 +19,7 @@ def new_run(socket, h5_save_path, run_number):
     os.makedirs(h5_save_path_this_run)
 
     print(f"hdf5_chunk_writer: recieving chunks from server")
+    socket.send("".encode("ascii"))
     chunks = pickle.loads(socket.recv())
     print(f"hdf5_chunk_writer: recieved chunks from server")
 
@@ -36,7 +37,7 @@ def save_times(times_array, times_file_path):
 def get_zmq_client_socket(port=ZMQ_PORT):
     print("hdf5_chunk_writer: connecting to zmq server")
     context = zmq.Context.instance()
-    socket = context.socket(zmq.PULL)
+    socket = context.socket(zmq.REQ)
     socket.connect(f"tcp://127.0.0.1:{port}")
     return socket
 

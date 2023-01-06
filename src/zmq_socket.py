@@ -53,7 +53,7 @@ def load_h5_files_as_arrays_of_chunks(h5_file_paths, max_array_number=None, pick
 
 def get_zmq_server_socket(port=ZMQ_PORT):
     context = zmq.Context.instance()
-    socket = context.socket(zmq.PUSH)
+    socket = context.socket(zmq.REP)
     socket.bind(f"tcp://127.0.0.1:{port}")
     print("zmq_socket: starting server")
     return socket
@@ -64,6 +64,7 @@ def start_zmp_chunk_server(port=ZMQ_PORT):
     socket = get_zmq_server_socket(port=port)
 
     for chunk_array_pickled in itertools.cycle(chunk_arrays):
+        socket.recv()
         print("zmq_socket: sending chunk")
         socket.send(chunk_array_pickled)
 
