@@ -126,7 +126,7 @@ class CircularBuffer:
         chunks = socket.recv_multipart()
         print(f"hdf5_chunk_writer: recieved chunks from server")
 
-        with open(self.file_path, "wb") as file:
+        with open(self.file_path, "rb+") as file:
             start_time = time_ns()
 
             for chunk in chunks:
