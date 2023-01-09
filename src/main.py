@@ -1,5 +1,13 @@
-from constants import TIME_ARRAY_OUT_DIRECTORY, H5_CHUNK_OUT_DIRECTORY, ZMQ_PORT
-from hdf5_chunk_writer import retrieve_chunks_and_save_to_shm
+from constants import (
+    TIME_ARRAY_OUT_DIRECTORY,
+    H5_CHUNK_OUT_DIRECTORY,
+    ZMQ_PORT,
+    USE_CIRCULAR_BUFFER,
+)
+from hdf5_chunk_writer import (
+    retrieve_chunks_and_save_to_shm,
+    retrieve_chunks_and_save_to_shm_circular_buffer,
+)
 from inotify_chunk_deleter import delete_old_chunks_on_new_dir_creation
 from mpi4py import MPI
 from time import time_ns
@@ -7,27 +15,48 @@ from zmq_socket import start_zmp_chunk_server
 import os
 
 
-def run_with_mpi(rank, current_time):
-    h5_chunk_out_directory = os.path.join(H5_CHUNK_OUT_DIRECTORY, f"run_at_{current_time}")
-    time_array_out_directory = os.path.join(TIME_ARRAY_OUT_DIRECTORY, f"run_at_{current_time}_time_results.npy")
+def run_with_mpi(rank, current_time, use_circular_buffer=USE_CIRCULAR_BUFFER):
+    if use_circular_buffer:
+        h5_chunk_out_directory = "/dev/shm"
+    else:
+        h5_chunk_out_directory = os.path.join(
+            H5_CHUNK_OUT_DIRECTORY, f"run_at_{current_time}"
+        )
+
+    time_array_out_directory = os.path.join(
+        TIME_ARRAY_OUT_DIRECTORY, f"run_at_{current_time}_time_results.npy"
+    )
 
     if rank == 0:
         print(f"core 0 initialising zmq server")
         start_zmp_chunk_server(port=ZMQ_PORT)
 
     elif rank == 1:
-        print(f"core 1 running inotify to delete chunks")
-        try:
-            os.mkdir(TIME_ARRAY_OUT_DIRECTORY)
-        except FileExistsError:
-            pass 
+        if use_circular_buffer:
+            print("core 1 has nothing to do")
+        else:
+            try:
+                os.mkdir(TIME_ARRAY_OUT_DIRECTORY)
+            except FileExistsError:
+                pass
 
-        delete_old_chunks_on_new_dir_creation(h5_chunk_out_directory)
+            delete_old_chunks_on_new_dir_creation(h5_chunk_out_directory)
 
     elif rank == 2:
         print("core 2 outputting chunks to shm")
-        retrieve_chunks_and_save_to_shm(ZMQ_PORT, h5_chunk_out_directory, time_array_out_directory)
-    
+
+        if use_circular_buffer:
+            retrieve_chunks_and_save_to_shm_circular_buffer(
+                ZMQ_PORT,
+                h5_chunk_out_directory,
+                str(current_time) + ".dat",
+                time_array_out_directory,
+            )
+        else:
+            retrieve_chunks_and_save_to_shm(
+                ZMQ_PORT, h5_chunk_out_directory, time_array_out_directory
+            )
+
     else:
         print(f"core {rank} has nothing to do")
 
@@ -47,7 +76,6 @@ def get_start_time(comm, rank, cores):
         return comm.recv(source=0, tag=1)
 
 
-
 def main():
 
     comm = MPI.COMM_WORLD
@@ -55,7 +83,9 @@ def main():
     cores = comm.Get_size()
 
     if cores < 3:
-        print(f"test is using {cores} cores, requires at least 3, run with mpiexec -n 3")
+        print(
+            f"test is using {cores} cores, requires at least 3, run with mpiexec -n 3"
+        )
         return
 
     if rank == 0:
@@ -65,6 +95,7 @@ def main():
     current_time = get_start_time(comm, rank, cores)
 
     run_with_mpi(rank, current_time)
+
 
 if __name__ == "__main__":
     main()
