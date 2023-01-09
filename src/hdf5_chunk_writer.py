@@ -114,6 +114,7 @@ class CircularBuffer:
         self.file_size_bytes = int(
             (1 - DELETE_WHEN_PROPORTION_SPACE_LEFT) * (sizes.f_bfree * sizes.f_frsize)
         )
+        print(f"FILE SIZE BYTES: {self.file_size_bytes}")
 
         with open(self.file_path, "wb+") as file:
             file.write(bytes(self.file_size_bytes))
@@ -125,7 +126,7 @@ class CircularBuffer:
         chunks = socket.recv_multipart()
         print(f"hdf5_chunk_writer: recieved chunks from server")
 
-        with open(self.file_path, "wb+") as file:
+        with open(self.file_path, "wb") as file:
             start_time = time_ns()
 
             for chunk in chunks:
