@@ -23,7 +23,7 @@ FACTORS_OF_CHUNKS_TO_DELETE = [3, 5]
 ZMQ_PORT = 5556
 
 # Delete previous runs when the proprtion of space left is
-DELETE_WHEN_PROPORTION_SPACE_LEFT = 0.8
+DELETE_WHEN_PROPORTION_SPACE_LEFT = 0.1
 
 # Number of runs to delete when capacity has been reached
 NUMBER_OF_RUNS_TO_DELETE = 2
