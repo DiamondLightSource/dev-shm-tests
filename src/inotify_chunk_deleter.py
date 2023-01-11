@@ -16,10 +16,16 @@ def delete_older_runs_if_neccessary(
     delete_when_proportion_space_left=DELETE_WHEN_PROPORTION_SPACE_LEFT,
 ):
     sizes = os.statvfs(h5_output_directory)
-    dir_contents = os.listdir(h5_output_directory)
+    dir_contents = sorted(
+        [
+            os.path.join(h5_output_directory, file)
+            for file in os.listdir(h5_output_directory)
+        ],
+        key=os.path.getmtime,
+    )
     if sizes.f_bfree < sizes.f_blocks * delete_when_proportion_space_left:
         print(f"inotify_chunk_deleter: deleting runs: ", end="")
-        for run_to_delete in dir_contents[-NUMBER_OF_RUNS_TO_DELETE:]:
+        for run_to_delete in dir_contents[:NUMBER_OF_RUNS_TO_DELETE]:
             if run_to_delete[-3:] != "npy":
                 print(str(run_to_delete), end=" ")
                 os.system(f"rm -rf {os.path.join(h5_output_directory, run_to_delete)}")
