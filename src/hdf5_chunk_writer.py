@@ -77,30 +77,6 @@ def retrieve_chunks_and_save_to_shm(
             save_times(times_array, times_path)
 
 
-def retrieve_chunks_and_save_to_shm(
-    port,
-    h5_save_path,
-    times_path,
-    save_after_iterations=SAVE_RESULTS_AFTER_ITERATIONS,
-    max_iterations=MAX_ITERATIONS,
-):
-    socket = get_zmq_client_socket(port=port)
-
-    times_array = np.empty(max_iterations)
-    times_array.fill(-1)
-
-    for iteration in range(max_iterations):
-        time_taken = new_run(socket, h5_save_path, iteration)
-
-        times_array[iteration] = time_taken
-
-        if (iteration + 1) % save_after_iterations == 0:
-            print(
-                f"time array: another {save_after_iterations} runs complete, saving results to {times_path}"
-            )
-            save_times(times_array, times_path)
-
-
 class CircularBuffer:
     def __init__(self, file_dir, file_name):
         self.file_path = os.path.join(file_dir, file_name)
@@ -126,8 +102,8 @@ class CircularBuffer:
         chunks = socket.recv_multipart()
         print(f"hdf5_chunk_writer: recieved chunks from server")
 
+        start_time = time_ns()
         with open(self.file_path, "rb+") as file:
-            start_time = time_ns()
 
             for chunk in chunks:
                 chunk_bytes = len(chunk)
@@ -138,7 +114,7 @@ class CircularBuffer:
                 file.write(chunk)
                 self.current_chunk_end_bytes_in += chunk_bytes
 
-            end_time = time_ns()
+        end_time = time_ns()
 
         return end_time - start_time
 
