@@ -1,7 +1,7 @@
 """For storing paths and stuff :)"""
 
 # Rather than saving chunks to new directories, save them all to the same file, overwriting when necessary.
-USE_CIRCULAR_BUFFER = True
+USE_CIRCULAR_BUFFER = False
 
 # Path to save the numpy array for the times of runs.
 TIME_ARRAY_OUT_DIRECTORY = "out"
@@ -23,7 +23,7 @@ FACTORS_OF_CHUNKS_TO_DELETE = [3, 5]
 ZMQ_PORT = 5556
 
 # Delete previous runs when the proprtion of space left is
-DELETE_WHEN_PROPORTION_SPACE_LEFT = 0.1
+DELETE_WHEN_PROPORTION_SPACE_LEFT = 0.8
 
 # Number of runs to delete when capacity has been reached
 NUMBER_OF_RUNS_TO_DELETE = 2
