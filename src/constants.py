@@ -1,7 +1,7 @@
 """For storing paths and stuff :)"""
 
 # Rather than saving chunks to new directories, save them all to the same file, overwriting when necessary.
-USE_CIRCULAR_BUFFER = False
+USE_CIRCULAR_BUFFER = True
 
 # Path to save the numpy array for the times of runs.
 TIME_ARRAY_OUT_DIRECTORY = "out"

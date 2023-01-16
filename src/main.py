@@ -28,22 +28,11 @@ def run_with_mpi(rank, current_time, use_circular_buffer=USE_CIRCULAR_BUFFER):
     )
 
     if rank == 0:
-        print(f"core 0 initialising zmq server")
+        print(f"Core 0 initialising zmq server.")
         start_zmp_chunk_server(port=ZMQ_PORT)
 
     elif rank == 1:
-        if use_circular_buffer:
-            print("core 1 has nothing to do")
-        else:
-            try:
-                os.mkdir(TIME_ARRAY_OUT_DIRECTORY)
-            except FileExistsError:
-                pass
-
-            delete_old_chunks_on_new_dir_creation(h5_chunk_out_directory)
-
-    elif rank == 2:
-        print("core 2 outputting chunks to shm")
+        print("Core 1 outputting chunks to shm.")
 
         if use_circular_buffer:
             retrieve_chunks_and_save_to_shm_circular_buffer(
@@ -56,6 +45,18 @@ def run_with_mpi(rank, current_time, use_circular_buffer=USE_CIRCULAR_BUFFER):
             retrieve_chunks_and_save_to_shm(
                 ZMQ_PORT, h5_chunk_out_directory, time_array_out_directory
             )
+
+    elif rank == 2:
+        if use_circular_buffer:
+            print("Core 2 has nothing to do.")
+        else:
+            try:
+                os.mkdir(TIME_ARRAY_OUT_DIRECTORY)
+            except FileExistsError:
+                pass
+
+            delete_old_chunks_on_new_dir_creation(h5_chunk_out_directory)
+
 
     else:
         print(f"core {rank} has nothing to do")
@@ -82,14 +83,16 @@ def main():
     rank = comm.Get_rank()
     cores = comm.Get_size()
 
-    if cores < 3:
+    cores_required = 3 - USE_CIRCULAR_BUFFER
+
+    if cores < cores_required:
         print(
-            f"test is using {cores} cores, requires at least 3, run with mpiexec -n 3"
+            f"Test is using {cores} cores, requires at least {cores_required}, run with mpiexec -n {cores_required}"
         )
         return
 
     if rank == 0:
-        print(f"running with {cores} cores")
+        print(f"Running with {cores} cores")
 
     # Get the time core 0 started
     current_time = get_start_time(comm, rank, cores)

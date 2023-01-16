@@ -26,6 +26,6 @@ if __name__ == "__main__":
            times = np.load(file) 
            times = np.delete(times, np.where(times == -1))
            times *= 1e-9
-           plt.plot(times)
+           plt.plot(times[:16000])
     
     plt.show()
