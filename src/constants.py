@@ -1,10 +1,10 @@
 """For storing paths and stuff :)"""
 
 # Rather than saving chunks to new directories, save them all to the same file, overwriting when necessary.
-USE_CIRCULAR_BUFFER = True
+USE_CIRCULAR_BUFFER = False
 
 # Path to save the numpy array for the times of runs.
-TIME_ARRAY_OUT_DIRECTORY = "out"
+TIME_ARRAY_OUT_ROOT = "out"
 
 SAVE_RESULTS_AFTER_ITERATIONS = 100
 
@@ -14,7 +14,7 @@ MAX_ITERATIONS = 10000000
 H5_FILE_DIRECTORY = "/dls/i04-1/data/2021/cm28181-3/gw/20210720/TestInsulin/Insulin_12/"
 
 # The code will output chunks here
-H5_CHUNK_OUT_DIRECTORY = "/dev/shm"
+CHUNK_OUT_ROOT = "/dev/shm"
 
 # If a chunk index contains these as a factor then the inotify thread/core will delete it.
 FACTORS_OF_CHUNKS_TO_DELETE = [3, 5]

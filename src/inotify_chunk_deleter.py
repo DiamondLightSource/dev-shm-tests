@@ -8,6 +8,7 @@ from constants import (
     FACTORS_OF_CHUNKS_TO_DELETE,
     DELETE_WHEN_PROPORTION_SPACE_LEFT,
     NUMBER_OF_RUNS_TO_DELETE,
+    CHUNK_OUT_ROOT,
 )
 
 
@@ -46,9 +47,8 @@ def delete_chunks(
                 break
 
 
-def delete_old_chunks_on_new_dir_creation(path):
-    os.makedirs(path)
-
+def delete_old_chunks_on_new_dir_creation(directory=CHUNK_OUT_ROOT):
+    path = get_path_on_chunk_creation(directory)
     i = inotify.adapters.Inotify()
     i.add_watch(path)
 
@@ -67,3 +67,12 @@ def delete_old_chunks_on_new_dir_creation(path):
                     delete_chunks(os.path.join(path, run_dir_name))
                 run_dir_name = filename
                 delete_older_runs_if_neccessary(path)
+
+
+def get_path_on_chunk_creation(directory):
+    dir_contents = [run for run in os.listdir(directory) if run[:3] == "run"]
+    dir_contents = sorted(
+        [os.path.join(directory, file) for file in dir_contents],
+        key=os.path.getmtime,
+    )
+    return dir_contents[-1]

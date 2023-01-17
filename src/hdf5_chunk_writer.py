@@ -12,98 +12,137 @@ from constants import (
     SAVE_RESULTS_AFTER_ITERATIONS,
     MAX_ITERATIONS,
     DELETE_WHEN_PROPORTION_SPACE_LEFT,
+    CHUNK_OUT_ROOT,
+    TIME_ARRAY_OUT_ROOT,
 )
 import zmq
 
 
-def new_run(socket, h5_save_path, run_number):
+class Buffer:
+    def __init__(
+        self,
+        port=ZMQ_PORT,
+        max_iterations=MAX_ITERATIONS,
+        save_times_after=SAVE_RESULTS_AFTER_ITERATIONS,
+        chunk_out_root=CHUNK_OUT_ROOT,
+        time_array_out_root=TIME_ARRAY_OUT_ROOT,
+    ):
+        self.start_time = time_ns()
+        self.socket = self.get_zmq_client_socket(port=port)
+        self.max_iterations = max_iterations
+        self.save_times_after = save_times_after
+        self.times_array = np.empty(max_iterations).fill(-1)
+        self.times_array_path = os.path.join(
+            time_array_out_root, str(self.start_time) + ".npy"
+        )
 
-    # New directory to store run.
-    h5_save_path_this_run = os.path.join(h5_save_path, f"run_num_{run_number}")
-    print(f"hdf5_chunk_writer: starting new run {run_number}")
-    os.makedirs(h5_save_path_this_run)
+        self.chunk_out_root = chunk_out_root
 
-    print(f"hdf5_chunk_writer: recieving chunks from server")
+    def get_zmq_client_socket(self, port=ZMQ_PORT):
+        print("hdf5_chunk_writer: connecting to zmq server")
+        context = zmq.Context.instance()
+        socket = context.socket(zmq.REQ)
+        socket.connect(f"tcp://127.0.0.1:{port}")
+        return socket
 
-    # We want the server to wait for the client to request another run,
-    # and it will hand on recv.
-    socket.send("".encode("ascii"))
-
-    chunks = socket.recv_multipart()
-    print(f"hdf5_chunk_writer: recieved chunks from server")
-
-    # We only want to time write, not read.
-    start_time = time_ns()
-    for i in range(len(chunks)):
-        with open(os.path.join(h5_save_path_this_run, f"chunk_{i}.dat"), "wb") as f:
-            f.write(chunks[i])
-    end_time = time_ns()
-    return end_time - start_time
-
-
-def save_times(times_array, times_file_path):
-    np.save(times_file_path, times_array)
-
-
-def get_zmq_client_socket(port=ZMQ_PORT):
-    print("hdf5_chunk_writer: connecting to zmq server")
-    context = zmq.Context.instance()
-    socket = context.socket(zmq.REQ)
-    socket.connect(f"tcp://127.0.0.1:{port}")
-    return socket
+    def save_times(self):
+        np.save(self.times_array_path, self.times_array)
 
 
-def retrieve_chunks_and_save_to_shm(
-    port,
-    h5_save_path,
-    times_path,
-    save_after_iterations=SAVE_RESULTS_AFTER_ITERATIONS,
-    max_iterations=MAX_ITERATIONS,
-):
-    socket = get_zmq_client_socket(port=port)
+class DirectoryBuffer(Buffer):
+    def __init__(self):
+        Buffer.__init__(self)
+        self.run_path = self.make_new_run_directory()
 
-    times_array = np.empty(max_iterations)
-    times_array.fill(-1)
+    def make_new_run_directory(self):
+        run_number = self.get_new_run_number()
+        run_path = os.path.join(self.chunk_out_root, "run_num_" + str(run_number))
+        try:
+            os.mkdir(run_path)
+        except FileExistsError:
+            ...
+        return run_path
 
-    for iteration in range(max_iterations):
-        time_taken = new_run(socket, h5_save_path, iteration)
+    def get_new_run_number(self):
+        dir_contents = [
+            run for run in os.listdir(self.chunk_out_root) if run[:3] == "run"
+        ]
+        dir_contents = sorted(
+            [os.path.join(self.chunk_out_root, file) for file in dir_contents],
+            key=os.path.getmtime,
+        )
 
-        times_array[iteration] = time_taken
+        if dir_contents:
+            return int(dir_contents[-1].split("_")[-1]) + 1
+        else:
+            return 0
 
-        if (iteration + 1) % save_after_iterations == 0:
-            print(
-                f"time array: another {save_after_iterations} runs complete, saving results to {times_path}"
-            )
-            save_times(times_array, times_path)
+    def write_chunks(self, sub_run_path):
+
+        # New directory to store run.
+        os.makedirs(sub_run_path)
+
+        print(f"hdf5_chunk_writer: recieving chunks from server")
+
+        # We want the server to wait for the client to request another run,
+        # and it will hand on recv.
+        self.socket.send(b"")
+
+        chunks = self.socket.recv_multipart()
+        print(f"hdf5_chunk_writer: recieved chunks from server")
+
+        # We only want to time write, not read.
+        start_time = time_ns()
+        for i in range(len(chunks)):
+            with open(os.path.join(sub_run_path, f"chunk_{i}.dat"), "wb") as f:
+                f.write(chunks[i])
+        end_time = time_ns()
+        return end_time - start_time
+
+    def write_chunks_loop(self):
+        for iteration in range(self.max_iterations):
+            sub_run_path = os.path.join(self.run_path, "sub_run_num_" + str(iteration))
+
+            self.times_array[iteration] = self.write_chunks(sub_run_path)
+
+            if (iteration + 1) % self.save_times_after == 0:
+                print(
+                    f"time array: another {self.save_times_after} runs complete, saving results to {self.times_array_path}"
+                )
+                self.save_times()
 
 
-class CircularBuffer:
-    def __init__(self, file_dir, file_name):
-        self.file_path = os.path.join(file_dir, file_name)
-        self.file_dir = file_dir
+class CircularBuffer(Buffer):
+    def __init__(self):
+        Buffer.__init__(self)
 
-        # Number of bytes into the file the last written chunk ends.
+        self.buffer_file_path = os.path.join(
+            self.chunk_out_root, str(self.start_time) + ".dat"
+        )
+
+        self.write_empty_file()
         self.current_chunk_end_bytes_in = 0
 
+        self.write_chunks_loop()
+
     def write_empty_file(self):
-        sizes = os.statvfs(self.file_dir)
+        sizes = os.statvfs(self.chunk_out_root)
         self.file_size_bytes = int(
             (1 - DELETE_WHEN_PROPORTION_SPACE_LEFT) * (sizes.f_bfree * sizes.f_frsize)
         )
         print(f"FILE SIZE BYTES: {self.file_size_bytes}")
 
-        with open(self.file_path, "wb+") as file:
+        with open(self.buffer_file_path, "wb+") as file:
             file.write(bytes(self.file_size_bytes))
 
-    def write_chunks(self, socket):
+    def write_chunks(self):
+        self.socket.send(b"")
 
-        socket.send("".encode("ascii"))
-
-        chunks = socket.recv_multipart()
+        chunks = self.socket.recv_multipart()
         print(f"hdf5_chunk_writer: recieved chunks from server")
 
         start_time = time_ns()
-        with open(self.file_path, "rb+") as file:
+        with open(self.buffer_file_path, "rb+") as file:
 
             for chunk in chunks:
                 chunk_bytes = len(chunk)
@@ -118,30 +157,12 @@ class CircularBuffer:
 
         return end_time - start_time
 
+    def write_chunks_loop(self):
+        for iteration in range(self.max_iterations):
+            self.times_array[iteration] = self.write_chunks()
 
-def retrieve_chunks_and_save_to_shm_circular_buffer(
-    port,
-    h5_save_path,
-    dat_file_name,
-    times_path,
-    save_after_iterations=SAVE_RESULTS_AFTER_ITERATIONS,
-    max_iterations=MAX_ITERATIONS,
-):
-    socket = get_zmq_client_socket(port=port)
-
-    times_array = np.empty(max_iterations)
-    times_array.fill(-1)
-
-    circular_buffer = CircularBuffer(h5_save_path, dat_file_name)
-    circular_buffer.write_empty_file()
-
-    for iteration in range(max_iterations):
-        time_taken = circular_buffer.write_chunks(socket)
-
-        times_array[iteration] = time_taken
-
-        if (iteration + 1) % save_after_iterations == 0:
-            print(
-                f"time array: another {save_after_iterations} runs complete, saving results to {times_path}"
-            )
-            save_times(times_array, times_path)
+            if (iteration + 1) % self.save_times_after == 0:
+                print(
+                    f"time array: another {self.save_times_after} runs complete, saving results to {self.times_array_path}"
+                )
+                self.save_times()

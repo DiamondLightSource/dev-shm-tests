@@ -10,7 +10,7 @@ import os
 import sys
 
 if __name__ == "__main__":
-    if len(sys.argv) ==  1:
+    if len(sys.argv) == 1:
         time_dir = TIME_ARRAY_OUT_DIRECTORY
     else:
         time_dir = sys.argv[1]
@@ -19,13 +19,13 @@ if __name__ == "__main__":
         files = os.listdir(time_dir)
         files = [os.path.join(time_dir, file) for file in files]
     except NotADirectoryError:
-        files = [time_dir] # passed in the file directly
+        files = [time_dir]  # Passed in the file directly, instead of the directory.
 
     for file in files:
         if file[-4:] == ".npy":
-           times = np.load(file) 
-           times = np.delete(times, np.where(times == -1))
-           times *= 1e-9
-           plt.plot(times[:16000])
-    
+            times = np.load(file)
+            times = np.delete(times, np.where(times == -1))
+            times *= 1e-9
+            plt.plot(times[:16000])
+
     plt.show()
