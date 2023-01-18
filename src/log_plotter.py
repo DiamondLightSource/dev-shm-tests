@@ -4,14 +4,14 @@ then plots the values in numpy.
 """
 
 import matplotlib.pyplot as plt
-from constants import TIME_ARRAY_OUT_DIRECTORY
+from multi_process.constants import TIME_ARRAY_OUT_ROOT
 import numpy as np
 import os
 import sys
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        time_dir = TIME_ARRAY_OUT_DIRECTORY
+        time_dir = TIME_ARRAY_OUT_ROOT
     else:
         time_dir = sys.argv[1]
 
@@ -26,6 +26,6 @@ if __name__ == "__main__":
             times = np.load(file)
             times = np.delete(times, np.where(times == -1))
             times *= 1e-9
-            plt.plot(times[:16000])
+            plt.plot(times)
 
     plt.show()

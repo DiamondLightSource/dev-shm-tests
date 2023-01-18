@@ -53,6 +53,7 @@ def load_images(images_directory=H5_FILE_DIRECTORY, max_array_number=4):
             for chunk_num in range(data.shape[0]):
                 chunks.append(data.id.read_direct_chunk((chunk_num, 0, 0))[1])
 
+            print(f"loaded file {file_path} containing {len(chunks)} chunks")
             chunks_list.append(chunks)
 
             if max_array_number:
@@ -79,7 +80,7 @@ def generate_results_array(
 ):
     results_array = np.empty(max_iterations)
     results_array.fill(-1)
-    return results_array, os.path.join(results_array_out_root, str(time_ns()) + ".dat")
+    return results_array, os.path.join(results_array_out_root, str(time_ns()) + ".npy")
 
 
 def write_chunks(

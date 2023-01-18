@@ -5,7 +5,6 @@ from hdf5_chunk_writer import DirectoryBuffer, CircularBuffer
 from inotify_chunk_deleter import delete_old_chunks_on_new_dir_creation
 from mpi4py import MPI
 from zmq_socket import ZMQServer
-import time
 
 
 def check_enough_cores(rank, cores):
@@ -35,17 +34,20 @@ def main():
 
     elif rank == 1:
         if USE_CIRCULAR_BUFFER:
-            CircularBuffer()
+            writer = CircularBuffer()
+            writer.write_chunks_loop()
+
         else:
-            DirectoryBuffer()
+            writer = DirectoryBuffer()
+            # Start the chunk deleter now that the new directory has been created for it.
+            comm.send(b"", dest=2, tag=0)
+            writer.write_chunks_loop()
 
     elif not USE_CIRCULAR_BUFFER and rank == 2:
         comm.recv(source=1, tag=0)
         delete_old_chunks_on_new_dir_creation()
 
     else:
-        # Sleep for the new directory to be created
-        time.sleep(3)
         print(f"Core {rank} has nothing to do.")
 
 

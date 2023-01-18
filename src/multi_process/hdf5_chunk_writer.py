@@ -124,7 +124,6 @@ class CircularBuffer(Buffer):
         self.write_empty_file()
         self.current_chunk_end_bytes_in = 0
 
-        self.write_chunks_loop()
 
     def write_empty_file(self):
         sizes = os.statvfs(self.chunk_out_root)
