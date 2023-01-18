@@ -31,7 +31,8 @@ class Buffer:
         self.socket = self.get_zmq_client_socket(port=port)
         self.max_iterations = max_iterations
         self.save_times_after = save_times_after
-        self.times_array = np.empty(max_iterations).fill(-1)
+        self.times_array = np.empty(max_iterations)
+        self.times_array.fill(-1)
         self.times_array_path = os.path.join(
             time_array_out_root, str(self.start_time) + ".npy"
         )

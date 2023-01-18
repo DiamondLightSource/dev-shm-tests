@@ -39,14 +39,13 @@ def main():
         else:
             DirectoryBuffer()
 
-            # Tell the other process it's ready to get the new run directory.
-            comm.send("", dest=2, tag=0)
-
     elif not USE_CIRCULAR_BUFFER and rank == 2:
         comm.recv(source=1, tag=0)
         delete_old_chunks_on_new_dir_creation()
 
     else:
+        # Sleep for the new directory to be created
+        time.sleep(3)
         print(f"Core {rank} has nothing to do.")
 
 
