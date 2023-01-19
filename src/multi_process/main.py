@@ -1,8 +1,6 @@
-from constants import (
-    USE_CIRCULAR_BUFFER,
-)
+from constants import USE_CIRCULAR_BUFFER, FACTORS_OF_CHUNKS_TO_DELETE
 from hdf5_chunk_writer import DirectoryBuffer, CircularBuffer
-from inotify_chunk_deleter import delete_old_chunks_on_new_dir_creation
+from inotify_chunk_deleter import DirectoryDeleter
 from mpi4py import MPI
 from zmq_socket import ZMQServer
 
@@ -40,12 +38,16 @@ def main():
         else:
             writer = DirectoryBuffer()
             # Start the chunk deleter now that the new directory has been created for it.
-            comm.send(b"", dest=2, tag=0)
+            comm.send(writer.run_directory, dest=2, tag=0)
             writer.write_chunks_loop()
 
     elif not USE_CIRCULAR_BUFFER and rank == 2:
-        comm.recv(source=1, tag=0)
-        delete_old_chunks_on_new_dir_creation()
+        # Wait for process two to make the run directory before we watch to delete.
+        run_directory = comm.recv(source=1, tag=0)
+
+        DirectoryDeleter(
+            run_directory, factors_of_chunks_to_delete=FACTORS_OF_CHUNKS_TO_DELETE
+        )
 
     else:
         print(f"Core {rank} has nothing to do.")

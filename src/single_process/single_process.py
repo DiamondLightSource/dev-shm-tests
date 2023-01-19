@@ -9,6 +9,7 @@ import h5py
 from time import time_ns
 import numpy as np
 import itertools
+from datetime import datetime
 
 
 H5_FILE_DIRECTORY = "/dls/i04-1/data/2021/cm28181-3/gw/20210720/TestInsulin/Insulin_12/"
@@ -40,7 +41,7 @@ def get_file_paths(path):
 
 
 def load_images(images_directory=H5_FILE_DIRECTORY, max_array_number=4):
-    # Returns and array of chunk arrays: [[image_1_chunk_1, image_1_chunk_2, ...], [image_2_chunk_1, image_2_chunk_2, ...], ...].
+    # Returns and array of chunk arrays: [[file_1_chunk_1, file_chunk_2, ...], [file_2_chunk_1, file_2_chunk_2, ...], ...].
     chunks_list = []
 
     file_paths = get_file_paths(images_directory)
@@ -63,7 +64,7 @@ def load_images(images_directory=H5_FILE_DIRECTORY, max_array_number=4):
     return chunks_list
 
 
-def write_empty_file(root_dir=CHUNK_OUT_ROOT, file_name=(str(time_ns()) + ".dat")):
+def write_empty_file(file_name, root_dir=CHUNK_OUT_ROOT):
     buffer_file_path = os.path.join(root_dir, file_name)
     sizes = os.statvfs(root_dir)
     buffer_file_size = int(
@@ -75,12 +76,14 @@ def write_empty_file(root_dir=CHUNK_OUT_ROOT, file_name=(str(time_ns()) + ".dat"
     return buffer_file_path, buffer_file_size
 
 
-def generate_results_array(
-    max_iterations=MAX_ITERATIONS, results_array_out_root=RESULTS_ARRAY_OUT_ROOT
+def generate_results_array_and_path(
+    file_name,
+    max_iterations=MAX_ITERATIONS,
+    results_array_out_root=RESULTS_ARRAY_OUT_ROOT,
 ):
     results_array = np.empty(max_iterations)
     results_array.fill(-1)
-    return results_array, os.path.join(results_array_out_root, str(time_ns()) + ".npy")
+    return results_array, os.path.join(results_array_out_root, file_name)
 
 
 def write_chunks(
@@ -128,7 +131,7 @@ def write_chunks_loop(
                 file, chunks, buffer_file_size, current_bytes_in
             )
             print(
-                f"\033[Kiteration {iteration} took {round(time_taken*1e-9, 5)} seconds",
+                f"\033[Kiteration {iteration} took {round(time_taken*1e-9, 4)} seconds",
                 end="\r",
             )
             results_array[iteration] = time_taken
@@ -140,13 +143,17 @@ def write_chunks_loop(
 
 
 def main():
+
+    start_time_str = datetime.now().strftime("%m-%d-%H-%M-%S")
     print("loading chunk list")
     chunks_list = load_images()
     print("finished loading chunk list")
-    results_array, results_array_path = generate_results_array()
+    results_array, results_array_path = generate_results_array_and_path(
+        start_time_str + ".npy"
+    )
     print(f"results array will be saved to {results_array_path}")
     print("generating empty file")
-    buffer_file_path, buffer_file_size = write_empty_file()
+    buffer_file_path, buffer_file_size = write_empty_file(start_time_str + ".dat")
     print(
         f"finished generating empty dat file {buffer_file_path}, of size {round(buffer_file_size  / (1024 ** 3), 4)} GB"
     )

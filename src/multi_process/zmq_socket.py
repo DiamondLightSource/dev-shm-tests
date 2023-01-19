@@ -29,7 +29,6 @@ class ZMQServer:
     def run_chunk_server(self):
         for chunk_array in itertools.cycle(self.chunks):
             self.socket.recv()
-            print("zmq_socket: sending chunks")
             self.socket.send_multipart(chunk_array)
 
     def get_h5_file_paths(self, path):
@@ -54,14 +53,12 @@ class ZMQServer:
         context = zmq.Context.instance()
         socket = context.socket(zmq.REP)
         socket.bind(f"tcp://127.0.0.1:{port}")
-        print("zmq_socket: starting server")
         return socket
 
     def load_h5_files_as_arrays_of_chunks(self, h5_file_paths, max_array_number=None):
         chunks_arrays = []
 
         for h5_file_path in h5_file_paths:
-            print("zmq_socket: loading chunks from " + h5_file_path)
             with h5py.File(h5_file_path) as h5_file:
                 data = h5_file["data"]
                 chunks = []
