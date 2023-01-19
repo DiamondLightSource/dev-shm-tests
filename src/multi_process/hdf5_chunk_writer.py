@@ -155,7 +155,4 @@ class CircularBuffer(Buffer):
             self.times_array[iteration] = self.write_chunks()
 
             if (iteration + 1) % self.save_times_after == 0:
-                print(
-                    f"time array: another {self.save_times_after} runs complete, saving results to {self.times_array_path}"
-                )
                 self.save_times()

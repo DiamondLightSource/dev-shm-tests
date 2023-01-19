@@ -16,7 +16,7 @@ H5_FILE_DIRECTORY = "/dls/i04-1/data/2021/cm28181-3/gw/20210720/TestInsulin/Insu
 MAX_ARRAY_NUMBER = 4
 CHUNK_OUT_ROOT = "/dev/shm"
 DELETE_WHEN_PROPORTION_SPACE_LEFT = 0.1
-MAX_ITERATIONS = 10000000
+MAX_ITERATIONS = 100
 SAVE_RESULTS_AFTER_ITERATIONS = 100
 RESULTS_ARRAY_OUT_ROOT = "out"
 
@@ -126,20 +126,18 @@ def write_chunks_loop(
     with open(buffer_file_path, "rb+") as file:
         iteration = 0
         print("", end="\r")
-        for chunks in itertools.cycle(chunks_list):
-            time_taken, current_bytes_in = write_chunks(
+        for (iteration, chunks) in zip(
+            range(max_iterations), itertools.cycle(chunks_list)
+        ):
+            results_array[iteration], current_bytes_in = write_chunks(
                 file, chunks, buffer_file_size, current_bytes_in
             )
             print(
-                f"\033[Kiteration {iteration} took {round(time_taken*1e-9, 4)} seconds",
+                f"\033[Kiteration {iteration} took {round(results_array[iteration]*1e-9, 4)} seconds",
                 end="\r",
             )
-            results_array[iteration] = time_taken
-            if (iteration + 1) % save_results_after_iterations == 0:
+            if (iteration) % save_results_after_iterations == 0:
                 save_results(results_array, results_array_path)
-            if iteration >= max_iterations:
-                break
-            iteration += 1
 
 
 def main():

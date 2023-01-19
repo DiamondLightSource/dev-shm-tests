@@ -5,10 +5,8 @@ waits for a new run to be created and does the same.
 import inotify.adapters
 import os
 from constants import (
-    FACTORS_OF_CHUNKS_TO_DELETE,
     DELETE_WHEN_PROPORTION_SPACE_LEFT,
     NUMBER_OF_RUNS_TO_DELETE,
-    CHUNK_OUT_ROOT,
 )
 
 
