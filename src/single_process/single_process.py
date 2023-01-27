@@ -41,7 +41,8 @@ def get_file_paths(path):
 
 
 def load_images(images_directory=H5_FILE_DIRECTORY, max_array_number=4):
-    # Returns and array of chunk arrays: [[file_1_chunk_1, file_chunk_2, ...], [file_2_chunk_1, file_2_chunk_2, ...], ...].
+    # Returns an list of chunk arrays (with chunks as byte string):
+    # [[file_1_chunk_1, file_chunk_2, ...], [file_2_chunk_1, file_2_chunk_2, ...], ...].
     chunks_list = []
 
     file_paths = get_file_paths(images_directory)
@@ -126,8 +127,10 @@ def write_chunks_loop(
     with open(buffer_file_path, "rb+") as file:
         iteration = 0
         print("", end="\r")
-        for (iteration, chunks) in zip(
-            range(max_iterations), itertools.cycle(chunks_list)
+        for (iteration, chunks, save_now) in zip(
+            range(max_iterations),
+            itertools.cycle(chunks_list),
+            itertools.cycle([0] * (save_results_after_iterations - 1) + [1]),
         ):
             results_array[iteration], current_bytes_in = write_chunks(
                 file, chunks, buffer_file_size, current_bytes_in
@@ -136,7 +139,7 @@ def write_chunks_loop(
                 f"\033[Kiteration {iteration} took {round(results_array[iteration]*1e-9, 4)} seconds",
                 end="\r",
             )
-            if (iteration) % save_results_after_iterations == 0:
+            if save_now:
                 save_results(results_array, results_array_path)
 
 
